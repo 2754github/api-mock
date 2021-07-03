@@ -9,13 +9,13 @@ import (
 	"net/http/httputil"
 	"os"
 	"time"
-	"unicode"
 )
 
 type response struct {
-	Status  int                    `json:"status"`
-	Header  map[string]string      `json:"header"`
-	Body    map[string]interface{} `json:"body"`
+	Status    int                    `json:"status"`
+	Header    map[string]string      `json:"header"`
+	Body      map[string]interface{} `json:"body"`
+	NoContent bool                   `json:"no_content"`
 }
 
 type httpErrorResponse struct {
@@ -63,12 +63,13 @@ func loadResponseJson() (res response) {
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request, res response) {
+	log.Print("Request received.")
 	defer log.Print("Waiting for next request...")
-  log.Print("Request received.")
+	defer log.Print("Response returned.")
 
-  fmt.Println("[Request Detail]")
+	fmt.Println("[Request Detail]")
 	dump, _ := httputil.DumpRequest(r, true)
-  fmt.Print(string(dump))
+	fmt.Print(string(dump))
 
 	q := r.URL.Query()
 	if len(q) != 0 {
@@ -94,8 +95,10 @@ func requestHandler(w http.ResponseWriter, r *http.Request, res response) {
 	}
 
 	w.WriteHeader(res.Status)
+	if res.NoContent {
+		return
+	}
 	w.Write(marshalJson(res.Body))
-	log.Print("Response returned.")
 }
 
 func marshalJson(x interface{}) []byte {
