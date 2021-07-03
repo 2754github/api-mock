@@ -23,6 +23,7 @@ Take a look at the response and API logs.
   - `status`: Set the _status_ of the response. Integer value.
   - `header`: Set the _header_ of the response. key-value format for string only.
   - `body`: Set the _body_ of the response. JSON format.
+  - `no_content`: Set the presence or absence of the response body. `true` or `false`.
 
 # Future Development
 
