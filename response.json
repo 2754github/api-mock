@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "header": {
+    "Content-Type": "application/json; charset=utf-8",
+    "Original-Key": "meow meow"
+  },
+  "body": {
+    "title": "api-mock",
+    "github_url": "https://github.com/2754github/api-mock",
+    "author": "2754",
+    "is_night_owl": false,
+    "favorites": ["TypeScript", "Go"],
+    "dislikes": null,
+    "favorite_animals": [
+      { "id": 1, "name": "Gopher" },
+      { "id": 2, "name": "cat" },
+      { "id": 3, "name": "dog" }
+    ],
+    "created_at": "2021-07-03 01:41:45",
+    "updated_at": "2021-07-03 16:13:57"
+  }
+}
