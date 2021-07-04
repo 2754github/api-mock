@@ -23,7 +23,7 @@ func main() {
 
 	port := ":" + os.Getenv("API_PORT")
 	entryPoint := os.Getenv("API_ENTRY_POINT")
-	log.Print("Server started. => http://localhost" + port + entryPoint)
+	log.Printf("Server started. => http://localhost%s%s", port, entryPoint)
 	http.HandleFunc(entryPoint, makeHandler(requestHandler))
 	http.ListenAndServe(port, nil)
 }
@@ -31,7 +31,9 @@ func main() {
 func setTimeZone() {
 	loc, err := time.LoadLocation(os.Getenv("TIME_ZONE"))
 	if err != nil {
-		log.Fatal("Load TIME_ZONE failed!")
+		log.Print("Load TIME_ZONE failed!")
+		log.Print("Set time zone to UTC and continue...")
+		return
 	}
 	time.Local = loc
 }
@@ -63,17 +65,7 @@ func requestHandler(w http.ResponseWriter, r *http.Request, res response) {
 
 	fmt.Println("[Request Detail]")
 	dump, _ := httputil.DumpRequest(r, true)
-	fmt.Print(string(dump))
-
-	q := r.URL.Query()
-	if len(q) != 0 {
-		fmt.Println("[Query-Parameters]")
-		i := 0
-		for k, v := range q {
-			i++
-			fmt.Printf("%2d) %s = %s\n", i, k, v[0])
-		}
-	}
+	fmt.Println(string(dump))
 
 	for k, v := range res.Header {
 		w.Header().Set(k, v)
