@@ -18,13 +18,19 @@ type response struct {
 	NoContent bool                   `json:"no_content"`
 }
 
+type serverError struct {
+	Title   string `json:"title"`
+	Message string `json:"message"`
+	Detail  string `json:"detail"`
+}
+
 func main() {
 	setTimeZone()
 
 	port := ":" + os.Getenv("API_PORT")
 	entryPoint := os.Getenv("API_ENTRY_POINT")
 	log.Printf("Server started. => http://localhost%s%s", port, entryPoint)
-	http.HandleFunc(entryPoint, makeHandler(requestHandler))
+	http.HandleFunc(entryPoint, requestHandler)
 	http.ListenAndServe(port, nil)
 }
 
@@ -38,50 +44,54 @@ func setTimeZone() {
 	time.Local = loc
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, response)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, loadResponseJson())
-	}
-}
-
-func loadResponseJson() (res response) {
-	f, err := os.Open("response.json")
-	if err != nil {
-		log.Fatal("Open response.json failed!")
-	}
-	defer f.Close()
-
-	b, _ := ioutil.ReadAll(f)
-	if err := json.Unmarshal(b, &res); err != nil {
-		log.Fatal("Unmarshal response.json failed!")
-	}
-	return
-}
-
-func requestHandler(w http.ResponseWriter, r *http.Request, res response) {
+func requestHandler(w http.ResponseWriter, r *http.Request) {
 	log.Print("Request received.")
 	defer log.Print("Waiting for next request...")
 	defer log.Print("Response returned.")
+
+	res, errJson := loadResponseJson()
+	if errJson != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Write(errJson)
+		return
+	}
 
 	fmt.Println("[Request Detail]")
 	dump, _ := httputil.DumpRequest(r, true)
 	fmt.Println(string(dump))
 
+	w.WriteHeader(res.Status)
 	for k, v := range res.Header {
 		w.Header().Set(k, v)
 	}
-
-	w.WriteHeader(res.Status)
 	if res.NoContent {
 		return
 	}
-	w.Write(marshalJson(res.Body))
+	resBody, _ := json.Marshal(res.Body)
+	w.Write(resBody)
 }
 
-func marshalJson(x interface{}) []byte {
-	json, err := json.Marshal(x)
+func loadResponseJson() (res response, errJson []byte) {
+	f, err := os.Open("response.json")
 	if err != nil {
-		log.Fatal("Marshal json failed!")
+		errJson, _ = json.Marshal(&serverError{
+			Title:   "Open response.json failed!",
+			Message: "Make sure that `response.json` exists.",
+			Detail:  err.Error(),
+		})
+		return
 	}
-	return json
+	defer f.Close()
+
+	b, _ := ioutil.ReadAll(f)
+	if err := json.Unmarshal(b, &res); err != nil {
+		errJson, _ = json.Marshal(&serverError{
+			Title:   "Unmarshal `response.json` failed!",
+			Message: "The `response.json` setting may be incorrect.",
+			Detail:  err.Error(),
+		})
+		return
+	}
+	return
 }
