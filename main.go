@@ -18,12 +18,6 @@ type response struct {
 	NoContent bool                   `json:"no_content"`
 }
 
-type httpErrorResponse struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Detail  string `json:"detail"`
-}
-
 func main() {
 	setTimeZone()
 
@@ -83,15 +77,6 @@ func requestHandler(w http.ResponseWriter, r *http.Request, res response) {
 
 	for k, v := range res.Header {
 		w.Header().Set(k, v)
-	}
-
-	m := r.Method
-	if m != http.MethodGet {
-		detail := m + " method not supported."
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write(marshalJson(&httpErrorResponse{Code: 405, Message: "Method Not Allowed", Detail: detail}))
-		log.Print(detail)
-		return
 	}
 
 	w.WriteHeader(res.Status)
