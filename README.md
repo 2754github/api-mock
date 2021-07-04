@@ -31,11 +31,6 @@ Take a look at the response and API logs. 👀
   - ⚠️ For JSON format, please set `Content-Type` to `application/json`.
 - `no_content`: Set the presence or absence of the response body. `true` or `false`.
 
-# Future Development
-
-- Support other than GET method
-- Connection to DB
-
 # License
 
 MIT

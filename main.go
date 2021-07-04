@@ -18,8 +18,8 @@ type response struct {
 	NoContent bool                   `json:"no_content"`
 }
 
-type httpErrorResponse struct {
-	Code    int    `json:"code"`
+type serverError struct {
+	Title   string `json:"title"`
 	Message string `json:"message"`
 	Detail  string `json:"detail"`
 }
@@ -29,82 +29,69 @@ func main() {
 
 	port := ":" + os.Getenv("API_PORT")
 	entryPoint := os.Getenv("API_ENTRY_POINT")
-	log.Print("Server started. => http://localhost" + port + entryPoint)
-	http.HandleFunc(entryPoint, makeHandler(requestHandler))
+	log.Printf("Server started. => http://localhost%s%s", port, entryPoint)
+	http.HandleFunc(entryPoint, requestHandler)
 	http.ListenAndServe(port, nil)
 }
 
 func setTimeZone() {
 	loc, err := time.LoadLocation(os.Getenv("TIME_ZONE"))
 	if err != nil {
-		log.Fatal("Load TIME_ZONE failed!")
+		log.Print("Load TIME_ZONE failed!")
+		log.Print("Set time zone to UTC and continue...")
+		return
 	}
 	time.Local = loc
 }
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, response)) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, loadResponseJson())
+func requestHandler(w http.ResponseWriter, r *http.Request) {
+	log.Print("Request received.")
+	defer log.Print("Waiting for next request...")
+	defer log.Print("Response returned.")
+
+	res, errJson := loadResponseJson()
+	if errJson != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Write(errJson)
+		return
 	}
+
+	fmt.Println("[Request Detail]")
+	dump, _ := httputil.DumpRequest(r, true)
+	fmt.Println(string(dump))
+
+	w.WriteHeader(res.Status)
+	for k, v := range res.Header {
+		w.Header().Set(k, v)
+	}
+	if res.NoContent {
+		return
+	}
+	resBody, _ := json.Marshal(res.Body)
+	w.Write(resBody)
 }
 
-func loadResponseJson() (res response) {
+func loadResponseJson() (res response, errJson []byte) {
 	f, err := os.Open("response.json")
 	if err != nil {
-		log.Fatal("Open response.json failed!")
+		errJson, _ = json.Marshal(&serverError{
+			Title:   "Open response.json failed!",
+			Message: "Make sure that `response.json` exists.",
+			Detail:  err.Error(),
+		})
+		return
 	}
 	defer f.Close()
 
 	b, _ := ioutil.ReadAll(f)
 	if err := json.Unmarshal(b, &res); err != nil {
-		log.Fatal("Unmarshal response.json failed!")
+		errJson, _ = json.Marshal(&serverError{
+			Title:   "Unmarshal `response.json` failed!",
+			Message: "The `response.json` setting may be incorrect.",
+			Detail:  err.Error(),
+		})
+		return
 	}
 	return
-}
-
-func requestHandler(w http.ResponseWriter, r *http.Request, res response) {
-	log.Print("Request received.")
-	defer log.Print("Waiting for next request...")
-	defer log.Print("Response returned.")
-
-	fmt.Println("[Request Detail]")
-	dump, _ := httputil.DumpRequest(r, true)
-	fmt.Print(string(dump))
-
-	q := r.URL.Query()
-	if len(q) != 0 {
-		fmt.Println("[Query-Parameters]")
-		i := 0
-		for k, v := range q {
-			i++
-			fmt.Printf("%2d) %s = %s\n", i, k, v[0])
-		}
-	}
-
-	for k, v := range res.Header {
-		w.Header().Set(k, v)
-	}
-
-	m := r.Method
-	if m != http.MethodGet {
-		detail := m + " method not supported."
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Write(marshalJson(&httpErrorResponse{Code: 405, Message: "Method Not Allowed", Detail: detail}))
-		log.Print(detail)
-		return
-	}
-
-	w.WriteHeader(res.Status)
-	if res.NoContent {
-		return
-	}
-	w.Write(marshalJson(res.Body))
-}
-
-func marshalJson(x interface{}) []byte {
-	json, err := json.Marshal(x)
-	if err != nil {
-		log.Fatal("Marshal json failed!")
-	}
-	return json
 }
