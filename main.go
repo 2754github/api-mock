@@ -76,7 +76,7 @@ func loadResponseJson() (res response, errJson []byte) {
 	f, err := os.Open("response.json")
 	if err != nil {
 		errJson, _ = json.Marshal(&serverError{
-			Title:   "Open response.json failed!",
+			Title:   "Open `response.json` failed!",
 			Message: "Make sure that `response.json` exists.",
 			Detail:  err.Error(),
 		})

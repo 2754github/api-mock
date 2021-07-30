@@ -7,7 +7,7 @@ Respond with **pre-defined JSON** to HTTP GET requests for **pre-defined entry p
 # Getting Started 🎉
 
 ```zsh
-$ docker compose up # or `go run main.go'
+$ docker compose up
 $ curl -i http://localhost:8080/v1/example?a=AAA\&b=BBB\&c=CCC
 ```
 
