@@ -61,13 +61,13 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 	dump, _ := httputil.DumpRequest(r, true)
 	fmt.Println(string(dump))
 
-	w.WriteHeader(res.Status)
 	for k, v := range res.Header {
 		w.Header().Set(k, v)
 	}
 	if res.NoContent {
 		return
 	}
+	w.WriteHeader(res.Status)
 	resBody, _ := json.Marshal(res.Body)
 	w.Write(resBody)
 }
